@@ -157,6 +157,7 @@ if user_input != st.session_state.last_user_input and user_input.strip():
         # GCP Project ID
         PROJECT_ID = "gcp103037-gcpenvironment"  # Replace with your GCP Project ID
         initialize_vertex_ai(PROJECT_ID)
+        GOOGLE_APPLICATION_CREDENTIALS = "/Users/npoly/Downloads/gcp103037-gcpenvironment-086f79e83506.json"
 
         # Send the user's message to Gemini
         response = ask_gemini(user_input)
