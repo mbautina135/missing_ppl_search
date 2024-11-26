@@ -1,112 +1,119 @@
-import json
-import random
-import geopandas as gpd
-from shapely.geometry import Polygon, MultiPolygon, Point, MultiPoint
-from shapely.ops import voronoi_diagram
 import streamlit as st
+import pandas as pd
+import geopandas as gpd
+from shapely.wkt import loads
+from shapely.geometry import Polygon, MultiPolygon
+import json
 
-def load_boundary(geojson_path):
-    """Load GeoJSON boundary file and return a unified boundary polygon."""
-    boundary_gdf = gpd.read_file(geojson_path)
-    return boundary_gdf.geometry.unary_union
 
-def generate_random_points(boundary, num_points):
-    """Generate random points inside the boundary polygon."""
-    points = []
-    minx, miny, maxx, maxy = boundary.bounds
-    while len(points) < num_points:
-        random_point = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
-        if boundary.contains(random_point):
-            points.append(random_point)
-    return points
+def prepare_data_from_polygons(file_path):  # Replace with your file path
+    sf_districts_data = pd.read_csv(file_path)
 
-def generate_voronoi_polygons(boundary, num_points):
-    """Generate Voronoi polygons clipped to the boundary."""
-    points = generate_random_points(boundary, num_points)
-    multipoint = MultiPoint(points)
-    voronoi = voronoi_diagram(multipoint, envelope=boundary.envelope)
+    # Parse WKT geometries
+    sf_districts_data['geometry'] = sf_districts_data['the_geom'].apply(lambda x: loads(x) if x else None)
+    # Expand MultiPolygons into individual polygons
+    expanded_rows = []
+    for _, row in sf_districts_data.iterrows():
+        expanded_rows.extend(extract_polygons(row))
 
-    clipped_polygons = [
-        polygon.intersection(boundary)
-        for polygon in voronoi.geoms
-        if not polygon.intersection(boundary).is_empty
-    ]
-    return gpd.GeoDataFrame(geometry=clipped_polygons, crs="EPSG:4326")
+    # Create a GeoDataFrame with cleaned geometries
+    cleaned_gdf = gpd.GeoDataFrame(expanded_rows, crs="EPSG:4326")
 
-def prepare_zones(mini_neighborhoods_gdf):
-    """Convert Voronoi polygons to JSON format for rendering."""
+    # Convert geometries to JSON-like structures for Google Maps
     zones = []
-    for i, row in mini_neighborhoods_gdf.iterrows():
-        if isinstance(row.geometry, Polygon):
-            coords = [{"lat": coord[1], "lng": coord[0]} for coord in row.geometry.exterior.coords]
-            zones.append({"name": f"Zone {i + 1}", "coordinates": coords, "status": "Available"})
-        elif isinstance(row.geometry, MultiPolygon):
-            for poly in row.geometry.geoms:
-                coords = [{"lat": coord[1], "lng": coord[0]} for coord in poly.exterior.coords]
-                zones.append({"name": f"Zone {i + 1}", "coordinates": coords, "status": "Available"})
+    for _, row in cleaned_gdf.iterrows():
+        if isinstance(row['geometry'], Polygon):
+            coords = [{"lat": coord[1], "lng": coord[0]} for coord in row['geometry'].exterior.coords]
+            zones.append({"name": row['name'], "coordinates": coords, "status": "Available"})
     return zones
 
-def render_google_map(boundary_polygon, zones, api_key):
+# Function to handle MultiPolygon and Polygon geometries
+def extract_polygons(row):
+    if isinstance(row['geometry'], MultiPolygon):
+        # Iterate over individual polygons in MultiPolygon
+        return [{'name': row['name'], 'geometry': poly} for poly in row['geometry'].geoms]
+    elif isinstance(row['geometry'], Polygon):
+        # Return single polygon
+        return [{'name': row['name'], 'geometry': row['geometry']}]
+    return []
+
+def render_google_map(zones, api_key):
     """Render the Google Map with zones and boundary."""
-    boundary_json = json.dumps([
-        [{"lat": coord[1], "lng": coord[0]} for coord in boundary_polygon.exterior.coords]
-    ] if isinstance(boundary_polygon, Polygon) else [
-        [{"lat": coord[1], "lng": coord[0]} for coord in poly.exterior.coords]
-        for poly in boundary_polygon.geoms
-    ])
     zones_json = json.dumps(zones)
 
     map_html = f"""
     <!DOCTYPE html>
     <html>
-      <head>
-        <style>
+    <head>
+    <style>
           #map {{
-            height: 600px;
+            height: 100%;
             width: 100%;
           }}
-        </style>
-      </head>
-      <body>
-        <div id="map"></div>
-        <script>
+          html, body {{
+            height: 100%;
+            margin: 0;
+            padding: 0;
+          }}
+    </style>
+    </head>
+    <body>
+    <div id="map"></div>
+    <script>
           function initMap() {{
             const map = new google.maps.Map(document.getElementById("map"), {{
               center: {{ lat: 37.7749, lng: -122.4194 }},
               zoom: 13,
             }});
 
-            // Render boundary
-            const boundary = {boundary_json};
-            boundary.forEach(coords => {{
-              const boundaryPolygon = new google.maps.Polygon({{
-                paths: coords,
-                strokeColor: "#FF0000",
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: "#FF0000",
-                fillOpacity: 0.1,
-              }});
-              boundaryPolygon.setMap(map);
-            }});
-
             // Render zones
             const zones = {zones_json};
-            zones.forEach(zone => {{
+            zones.forEach((zone) => {{
               const polygon = new google.maps.Polygon({{
                 paths: zone.coordinates,
-                strokeColor: "#0000FF",
+                strokeColor: "#000",
                 strokeOpacity: 0.8,
                 strokeWeight: 2,
-                fillColor: "#00FF00",
+                fillColor: getFillColor(zone.status),
                 fillOpacity: 0.35,
+                map: map,
               }});
-              polygon.setMap(map);
+
+              const infoWindow = new google.maps.InfoWindow({{
+                content: `<strong>${{zone.name}}</strong><br>Status: ${{zone.status}}`,
+              }});
+
+              polygon.addListener("click", () => {{
+                infoWindow.setPosition(getPolygonCenter(zone.coordinates));
+                infoWindow.open(map);
+              }});
             }});
+
+            function getFillColor(status) {{
+              switch (status) {{
+                case "Available": return "#00FF00";
+                case "In Progress": return "#FF0000";
+                case "Searched": return "#0000FF";
+                default: return "#FFFFFF";
+              }}
+            }}
+
+            function getPolygonCenter(coordinates) {{
+              let latSum = 0, lngSum = 0;
+              coordinates.forEach(coord => {{
+                latSum += coord.lat;
+                lngSum += coord.lng;
+              }});
+              return {{
+                lat: latSum / coordinates.length,
+                lng: lngSum / coordinates.length
+              }};
+            }}
           }}
-        </script>
-        <script async defer src="https://maps.googleapis.com/maps/api/js?key={api_key}&callback=initMap"></script>
-      </body>
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key={api_key}&callback=initMap" async defer></script>
+    </body>
     </html>
     """
+
     st.components.v1.html(map_html, height=600)
