@@ -1,4 +1,3 @@
-# chat_module.py
 
 import streamlit as st
 

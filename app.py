@@ -69,6 +69,90 @@ def main():
         unsafe_allow_html=True
     )
 
+    # -------------------- Add Scrollable Message Blocks Here -------------------- #
+
+    # Define your messages with 4 sentences each
+    messages = [
+        (
+            "Welcome to the SF Neighborhood Zones! "
+            "This platform allows you to manage and monitor various zones within San Francisco effectively. "
+            "Each zone can be assigned to team members, and its status can be updated in real-time. "
+            "Feel free to explore the map and utilize the chat for any assistance."
+        ),
+        (
+            "Assign zones to team members efficiently. "
+            "Use the sidebar to select a zone, update its status, and assign it to the appropriate team member. "
+            "This ensures that each area is managed properly and responsibilities are clearly defined. "
+            "Efficient assignment helps in maintaining organized and effective operations."
+        ),
+        (
+            "Monitor the status of each zone in real-time. "
+            "Stay updated with the latest changes and progress within each neighborhood zone. "
+            "Real-time monitoring enables prompt responses to any developments or issues that may arise. "
+            "Keep track of all activities to ensure smooth and coordinated efforts."
+        ),
+        (
+            "Need help? Use the chat on the right. "
+            "Our integrated chat module allows you to communicate seamlessly with your team members. "
+            "Whether you have questions, need assistance, or want to share updates, the chat is here for you. "
+            "Effective communication is key to successful zone management."
+        ),
+        (
+            "Stay updated with the latest zone activities. "
+            "Receive notifications and updates about any significant changes or events in each zone. "
+            "Staying informed helps in making informed decisions and taking timely actions. "
+            "Regular updates ensure that everyone is on the same page and aware of ongoing activities."
+        )
+    ]
+
+    # Custom CSS for the scrollable container and message blocks
+    scrollable_css = """
+    <style>
+    .scrollable-container {
+        display: flex;
+        overflow-x: auto;
+        padding: 20px 0;
+        background-color: #f0f2f6;
+    }
+    .message-block {
+        flex: 0 0 auto;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 20px 25px;
+        margin-right: 15px;
+        box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
+        min-width: 300px;
+        max-width: 350px;
+        height: auto;
+        box-sizing: border-box;
+        font-size: 16px;
+        line-height: 1.5;
+        text-align: left;
+    }
+    /* Hide scrollbar for WebKit browsers */
+    .scrollable-container::-webkit-scrollbar {
+        display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .scrollable-container {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    </style>
+    """
+
+    # Create the scrollable message blocks
+    messages_html = "<div class='scrollable-container'>"
+    for msg in messages:
+        messages_html += f"<div class='message-block'>{msg}</div>"
+    messages_html += "</div>"
+
+    # Render the CSS and HTML
+    st.markdown(scrollable_css + messages_html, unsafe_allow_html=True)
+
+    # --------------------------------------------------------------------------------- #
+
     # Create columns for layout: Map (75%) and Chat (25%)
     map_col, chat_col = st.columns([3, 1], gap="medium")
 
@@ -87,7 +171,6 @@ def main():
             st.session_state["zones"] = update_zone(
                 st.session_state["zones"], zone_name, status, assignment
             )
-            st.success(f"Zone '{zone_name}' updated successfully.")
 
         # Create a placeholder for the map
         map_placeholder = st.empty()
