@@ -1,5 +1,3 @@
-# app.py
-
 import json
 import streamlit as st
 from google_map import prepare_data_from_polygons, render_google_map
@@ -65,8 +63,11 @@ def main():
         "Frank", "Grace", "Hank", "Ivy", "Jack"
     ]
 
-    # Main title for the app
-    st.title("San Francisco Mini Neighborhood Zones and Chat")
+    # Centered title for the app using Markdown and HTML
+    st.markdown(
+        "<h1 style='text-align: center;'>San Francisco Mini Neighborhood Zones and Chat</h1>",
+        unsafe_allow_html=True
+    )
 
     # Create columns for layout: Map (75%) and Chat (25%)
     map_col, chat_col = st.columns([3, 1], gap="medium")
@@ -99,7 +100,6 @@ def main():
         )
 
     with chat_col:
-        st.subheader("Chat Interface")
 
         # Display chat messages
         display_chat()
