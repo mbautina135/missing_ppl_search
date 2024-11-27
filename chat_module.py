@@ -1,3 +1,5 @@
+# chat_module.py
+
 import streamlit as st
 
 def initialize_chat_session():
@@ -68,14 +70,12 @@ def display_chat():
     chat_html += "</div>"
     st.markdown(chat_html, unsafe_allow_html=True)
 
-def handle_user_input():
+def handle_user_input(user_input):
     """Handle user input, add messages to session state, and generate a bot response."""
-    user_message = st.session_state.user_input
-    if user_message:
+    if user_input:
         # Add user's message
-        st.session_state.messages.append({"is_user": True, "text": user_message})
+        st.session_state.messages.append({"is_user": True, "text": user_input})
         # Bot's response logic (simple echo response)
-        bot_response = f"You said: {user_message}"
+        bot_response = f"You said: {user_input}"
         st.session_state.messages.append({"is_user": False, "text": bot_response})
-        # Clear input box
-        st.session_state.user_input = ""
+        # No need to clear user_input here since clear_on_submit=True
