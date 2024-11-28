@@ -1,0 +1,5 @@
+2024-11-27 18:07:24,824 - INFO - Chat session initialized.
+2024-11-27 18:07:24,825 - INFO - Configuration file 'config.json' loaded successfully.
+2024-11-27 18:07:24,829 - INFO - CSV file 'SF_Find_Neighborhoods_20241121.csv' loaded successfully.
+2024-11-27 18:07:24,830 - ERROR - The 'coordinates' column is missing in the CSV file.
+2024-11-27 18:07:24,830 - ERROR - An error occurred while preparing data: The 'coordinates' column is missing in the CSV file.

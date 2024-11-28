@@ -183,18 +183,29 @@ def main():
         )
 
     with chat_col:
+        # Create placeholders to control the layout
+        # Messages will appear above the input form
+        messages_placeholder = st.empty()
+        input_placeholder = st.empty()
 
-        # Display chat messages
-        display_chat()
+        # ---- Process User Input First ---- #
+        # Handle form submission before rendering messages
+        with input_placeholder:
+            with st.form(key="chat_form", clear_on_submit=True):
+                user_input = st.text_input("You:", key="user_input")
+                submit_button = st.form_submit_button(label="Send")
 
-        # Input form for user messages
-        with st.form(key="chat_form", clear_on_submit=True):
-            user_input = st.text_input("You:", key="user_input")
-            submit_button = st.form_submit_button(label="Send")
+            if submit_button and user_input.strip():
+                # Pass user_input directly to handle_user_input
+                handle_user_input(user_input)
 
-        if submit_button and user_input.strip():
-            # Pass user_input directly to handle_user_input
-            handle_user_input(user_input)
+        # ---- Display Chat Messages Below ---- #
+        with messages_placeholder:
+            display_chat()
+
+        # **Note:** Since `messages_placeholder` is defined before `input_placeholder` in the code,
+        # Streamlit will render `messages_placeholder` **above** `input_placeholder` in the UI,
+        # while ensuring that user input is processed before messages are displayed.
 
 if __name__ == "__main__":
     main()
