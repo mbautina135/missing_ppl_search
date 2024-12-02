@@ -1,11 +1,10 @@
 # google_map.py
 
-import json
-import streamlit as st
 import pandas as pd
 import geopandas as gpd
 from shapely.wkt import loads
 from shapely.geometry import Polygon, MultiPolygon
+import streamlit as st
 
 def prepare_data_from_polygons(file_path):
     """
@@ -61,16 +60,20 @@ def extract_polygons(row):
         return [{'name': row['name'], 'geometry': row['geometry']}]
     return []
 
-def render_google_map(zones, api_key, placeholder):
+
+def render_google_map(zones, pins, api_key, map_placeholder):
     """
-    Render the Google Map with zones and interactivity within a Streamlit placeholder.
+    Render the Google Map with zones and pins within a Streamlit placeholder.
 
     Args:
         zones (list): List of zone dictionaries.
+        pins (list): List of pin dictionaries.
         api_key (str): Google Maps API key.
         placeholder (streamlit.delta_generator.DeltaGenerator): Streamlit placeholder to render the map.
     """
+    import json
     zones_json = json.dumps(zones)
+    pins_json = json.dumps(pins)
 
     map_html = f"""
     <!DOCTYPE html>
@@ -94,7 +97,7 @@ def render_google_map(zones, api_key, placeholder):
           function initMap() {{
             const map = new google.maps.Map(document.getElementById("map"), {{
               center: {{ lat: 37.7749, lng: -122.4194 }},
-              zoom: 12,  // Adjusted zoom level for a zoomed-out view
+              zoom: 12,
             }});
 
             // Render zones
@@ -135,6 +138,24 @@ def render_google_map(zones, api_key, placeholder):
               }}
             }}
 
+            // Add pins
+            const pins = {pins_json};
+            pins.forEach((pin) => {{
+                const marker = new google.maps.Marker({{
+                    position: {{ lat: pin.latitude, lng: pin.longitude }},
+                    map: map,
+                    title: pin.label,
+                }});
+
+                const markerInfoWindow = new google.maps.InfoWindow({{
+                    content: `<div><strong>${{pin.label}}</strong></div>`,
+                }});
+
+                marker.addListener("click", () => {{
+                    markerInfoWindow.open(map, marker);
+                }});
+            }});
+
             // Add click listener to the map for preview info window
             map.addListener("click", (mapsMouseEvent) => {{
               const clickedLatLng = mapsMouseEvent.latLng;
@@ -156,7 +177,7 @@ def render_google_map(zones, api_key, placeholder):
                   pixelOffset: new google.maps.Size(0, -30)
                 }});
                 previewInfoWindow.open(map);
-                
+
                 // Optional: Close the preview after a short delay
                 setTimeout(() => {{
                   previewInfoWindow.close();
@@ -170,5 +191,5 @@ def render_google_map(zones, api_key, placeholder):
     </html>
     """
 
-    with placeholder:
+    with map_placeholder:
         st.components.v1.html(map_html, height=600)

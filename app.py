@@ -179,7 +179,8 @@ def main():
         render_google_map(
             st.session_state["zones"],
             api_key=config.get("google_maps_api_key", ""),
-            placeholder=map_placeholder
+            pins=[],
+            map_placeholder=map_placeholder
         )
 
     with chat_col:
@@ -198,6 +199,16 @@ def main():
             if submit_button and user_input.strip():
                 # Pass user_input directly to handle_user_input
                 handle_user_input(user_input)
+                new_pins = [
+                    {"latitude": 37.8024, "longitude": -122.4058, "label": "Coit Tower"},
+                    {"latitude": 37.7694, "longitude": -122.4862, "label": "Golden Gate Park"},
+                ]
+                render_google_map(
+                    st.session_state["zones"],
+                    api_key=config.get("google_maps_api_key", ""),
+                    pins=new_pins,
+                    map_placeholder=map_placeholder
+                )
 
         # ---- Display Chat Messages Below ---- #
         with messages_placeholder:
@@ -206,6 +217,8 @@ def main():
         # **Note:** Since `messages_placeholder` is defined before `input_placeholder` in the code,
         # Streamlit will render `messages_placeholder` **above** `input_placeholder` in the UI,
         # while ensuring that user input is processed before messages are displayed.
+
+
 
 if __name__ == "__main__":
     main()
